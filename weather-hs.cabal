@@ -1,0 +1,20 @@
+name:                weather-hs
+version:             0.1.0.0
+synopsis:            Command line client for simple weather data access
+description:         Please see README.md
+homepage:            https://github.com/SamProtas/weather-hs#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Sam Protas
+maintainer:          sam.protas@gmail.com
+copyright:           2017 Sam Protas
+category:            Command Line
+build-type:          Simple
+cabal-version:       >=1.10
+extra-source-files:  README.md
+
+executable weather
+  hs-source-dirs:      src
+  main-is:             Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
