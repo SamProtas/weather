@@ -5,6 +5,7 @@ module Weather.WeatherUnderground (
   Feature (..)
 ) where
 
+import App
 import Weather
 import Configuration
 import Location
@@ -20,6 +21,8 @@ import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Network.HTTP.Simple
 import Control.Monad
 import Control.Monad.Catch
+import Control.Monad.Except
+import Control.Monad.Reader
 import Data.Aeson
 import Data.Bifunctor
 import Data.Either
@@ -56,18 +59,19 @@ lower feature = T.pack $ fmap toLower (show feature)
 
 base = "http://api.wunderground.com/api/"
 
-getConditions :: SpecificConfig WeatherUndergroundApiKey -> Location -> IO (Either Text CurrentObservationResponse)
-getConditions = flip getUrl Conditions
+getUrl :: FromJSON a => Feature -> Location -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) a
+getUrl feature location = do
+    config <- ask
+    manager <- liftIO $ newManager tlsManagerSettings
+    let url = buildUrl config feature location
+    preRequest <- toRequest url
+    let request = setRequestManager manager preRequest
+    response <- httpJSON request
+    let body = getResponseBody response
+    return body
 
-getUrl :: (FromJSON a, Show a) => SpecificConfig WeatherUndergroundApiKey -> Feature -> Location -> IO (Either Text a)
-getUrl config feature location = do
-  manager <- newManager tlsManagerSettings
-  let url = buildUrl config feature location
-  preRequest <- toRequest url
-  let request = setRequestManager manager preRequest
-  response <- httpJSONEither request
-  let body = getResponseBody response
-  return $ first (\err -> "Error getting/parsing weather: " `T.append` (T.pack $ show err)) body
+getConditions :: Location -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) CurrentObservationResponse
+getConditions = getUrl Conditions
 
 buildUrl :: SpecificConfig WeatherUndergroundApiKey -> Feature -> Location -> WeatherUrl
 buildUrl (SpecificConfig (WeatherUndergroundApiKey apiKey)) feature (Location _ _ _ lat lon) =

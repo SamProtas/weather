@@ -5,11 +5,15 @@ module Location (
   Location (..)
 ) where
 
+import App
+
 import Text.Read
 import Data.Text
 import GHC.Generics
 import Data.Aeson
 import Data.Aeson.Types
+import Control.Monad.Except
+import Control.Monad.Writer
 import Network.HTTP.Client (newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Network.HTTP.Simple
@@ -43,11 +47,12 @@ instance FromJSON Location where
 
 locationUrl = "https://ipinfo.io/json"
 
-getLocation :: IO (Either Text Location)
+getLocation :: WeatherAppIO c Location
 getLocation = do
-  manager <- newManager tlsManagerSettings
-  let request = setRequestManager manager locationUrl
-  response <- httpJSONEither request
-  let body = getResponseBody response
-  return $ case body of Left _ -> Left "Error parsing your location"
-                        Right location -> Right location
+   manager <- liftIO $ newManager tlsManagerSettings
+   let request = setRequestManager manager locationUrl
+   response <- httpJSON request
+   tell ["Requested location"]
+   let body = getResponseBody response
+   tell ["Parsed location"]
+   return body

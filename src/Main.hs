@@ -1,26 +1,35 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, GeneralizedNewtypeDeriving #-}
 
 module Main where
 
+import App
 import Location
 import Configuration
 import Weather.WeatherUnderground
 
+import Control.Monad.Catch
+import Control.Monad.Reader
+import Control.Monad.Writer
+import Control.Monad.Identity
 import Data.Text (Text)
 import qualified Data.Text as T
 
-import Network.HTTP.Client (newManager)
-import Network.HTTP.Client.TLS (tlsManagerSettings)
-import Network.HTTP.Simple
 
 main :: IO ()
 main = do
-  eitherConfig <- getConfig :: IO (Either Text (SpecificConfig WeatherUndergroundApiKey))
-  case eitherConfig of Left err -> sequence_ $ print <$> T.lines err
-                       Right config -> do
-                        eitherLocation <- getLocation
-                        case eitherLocation of Left message -> print message
-                                               Right location -> do
-                                                res <- getConditions config location
-                                                print res
-                                                return ()
+  config <- getConfig `onException` print "Couldn't get config"
+  runWithConfig weather config `catch` reportExceptions
+  return ()
+
+weather :: WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
+weather = do
+  location <- getLocation
+  report <- getConditions location
+  liftIO $ print report
+  return ()
+
+
+-- TODO - Generalize to other exception types or fix exception hierarchy
+reportExceptions :: ConfigException -> IO ()
+reportExceptions ConfigNotFound = print "Could not find configuation"
+reportExceptions (ConfigParseException raw) = print "Could not parse configuration" >> print "" >> print raw

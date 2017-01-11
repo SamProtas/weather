@@ -5,13 +5,18 @@ module Configuration (
   WeatherBackendConfig,
   Config (..),
   SpecificConfig (..),
+  ConfigException (..),
   getConfig,
   selectConfig
 ) where
 
+import App
+
 import System.IO
 
-import Control.Exception
+-- import Control.Exception
+import Control.Monad.Catch
+import Data.Typeable
 import Data.Text
 import Data.String (IsString)
 import Data.Bifunctor
@@ -36,25 +41,22 @@ instance ToJSON WeatherUndergroundApiKey
 instance FromJSON WeatherUndergroundApiKey
 instance WeatherBackendConfig WeatherUndergroundApiKey
 
+data SpecificConfig a = SpecificConfig { weatherConfig :: a } deriving (Show)
 
-data SpecificConfig a = SpecificConfig { weather :: a } deriving (Show)
-
+data ConfigException = ConfigNotFound | ConfigParseException Text deriving (Show, Typeable)
+instance Exception ConfigException
 
 configFilePath :: FilePath
 configFilePath = "/Users/Sam/.weather"
 
-getConfig :: IO (Either Text (SpecificConfig WeatherUndergroundApiKey))
+selectConfig :: (Monad m, MonadThrow m)=> Config -> m (SpecificConfig WeatherUndergroundApiKey)
+selectConfig (Config (WeatherConfigs (Just weatherUndergroundKey))) = return (SpecificConfig weatherUndergroundKey)
+selectConfig (Config (WeatherConfigs Nothing)) = throwM ConfigNotFound
+
+
+getConfig :: IO (SpecificConfig WeatherUndergroundApiKey)
 getConfig = do
-  -- TODO - Add debugger that collects errors?
-  configContents <- try $ C.readFile configFilePath  :: IO (Either IOError C.ByteString)
-  let result = do
-          contents <- first (\_ -> pack $ "Error accessing config located at: " ++ configFilePath) configContents -- :: Either Text C.ByteString
-          config <- first (\_ -> pack $ "Error parsing config:\n" ++ show contents) $ eitherDecode' contents -- :: Either Text Config
-          selected <- selectConfig config
-          return selected
+  configContents <- C.readFile configFilePath
+  case decode' configContents >>= selectConfig of Nothing -> throwM $ ConfigParseException $ pack $ C.unpack configContents
+                                                  Just config -> return config
 
-  return result
-
-selectConfig :: Config -> Either Text (SpecificConfig WeatherUndergroundApiKey)
-selectConfig (Config (WeatherConfigs (Just weatherUndergroundKey))) = Right (SpecificConfig weatherUndergroundKey)
-selectConfig (Config (WeatherConfigs Nothing)) = Left "No weather backend included in configuration file"
