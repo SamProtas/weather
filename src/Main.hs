@@ -23,11 +23,7 @@ main = do
   return ()
 
 weather :: WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
-weather = do
-  location <- getLocation
-  report <- getConditions location
-  displayWeather report
-  return ()
+weather = getLocation >>= getConditions >>= displayWeather
 
 
 -- TODO - Generalize to other exception types or fix exception hierarchy
