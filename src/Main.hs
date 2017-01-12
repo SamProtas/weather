@@ -5,6 +5,7 @@ module Main where
 import App
 import Location
 import Configuration
+import Weather
 import Weather.WeatherUnderground
 
 import Control.Exception.Safe
@@ -25,7 +26,7 @@ weather :: WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
 weather = do
   location <- getLocation
   report <- getConditions location
-  liftIO $ print report
+  displayWeather report
   return ()
 
 

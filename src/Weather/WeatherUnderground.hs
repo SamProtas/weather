@@ -2,7 +2,8 @@
 
 module Weather.WeatherUnderground (
   getConditions,
-  Feature (..)
+  Feature (..),
+--   DisplayAbleWeather (CurrentObservationResponse)
 ) where
 
 import App
@@ -23,6 +24,7 @@ import Control.Exception.Safe
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Reader
+import Control.Monad.Writer
 import Data.Aeson
 import Data.Bifunctor
 import Data.Either
@@ -36,20 +38,20 @@ data CurrentObservationResponse = CurrentObservationResponse { current_observati
 instance FromJSON CurrentObservationResponse
 instance ToJSON CurrentObservationResponse
 
-data CurrentObservation = CurrentObservation { observation_time :: Text
-                                             , weather :: Text
+data CurrentObservation = CurrentObservation { observation_time :: String
+                                             , weather :: String
                                              , temp_f :: Float
-                                             , feelslike_f :: Text
-                                             , relative_humidity :: Text
-                                             , wind_string :: Text
+                                             , feelslike_f :: String
+                                             , relative_humidity :: String
+                                             , wind_string :: String
                                              , observation_location :: CurrentObservationLocation}
                                              deriving (Show, Generic)
 instance FromJSON CurrentObservation
 instance ToJSON CurrentObservation
 
-data CurrentObservationLocation = CurrentObservationLocation { full :: Text
-                                                             , latitude :: Text
-                                                             , longitude :: Text }
+data CurrentObservationLocation = CurrentObservationLocation { full :: String
+                                                             , latitude :: String
+                                                             , longitude :: String }
                                                              deriving (Show, Generic)
 instance FromJSON CurrentObservationLocation
 instance ToJSON CurrentObservationLocation
@@ -79,3 +81,21 @@ buildUrl (SpecificConfig (WeatherUndergroundApiKey apiKey)) feature (Location _ 
 
 toRequest :: MonadThrow m => WeatherUrl -> m Request
 toRequest (WeatherUrl url) = parseRequest $ T.unpack url
+
+
+instance DisplayAbleWeather CurrentObservationResponse where
+  displayWeather obs@(CurrentObservationResponse (CurrentObservation
+    time weatherDesc temp_f feelslike_f relative_humidity wind_string
+    CurrentObservationLocation { full = locationString }
+    )) = do
+      tell [T.append "Current observation raw: " (T.pack $ show obs)]
+      putM $ "Current Weather Report for: " ++ locationString
+      putM weatherDesc
+      putM $ "Temperature: " ++ show temp_f ++ degreesF
+      putM $ "Feels like " ++ feelslike_f ++ degreesF
+      putM $ "Wind: " ++ wind_string
+      putM time
+        where degreesF = " °F"
+
+
+
