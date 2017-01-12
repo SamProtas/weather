@@ -17,7 +17,7 @@ import qualified Data.Text as T
 
 main :: IO ()
 main = do
-  config <- getConfig `onException` print "Couldn't get config"
+  config <- getConfig `withException` (\e -> putStrLn $ "Exited with: " ++ show (e :: SomeWeatherException))
   runWithConfig weather config `catch` reportExceptions
   return ()
 

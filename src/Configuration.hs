@@ -43,7 +43,9 @@ instance WeatherBackendConfig WeatherUndergroundApiKey
 data SpecificConfig a = SpecificConfig { weatherConfig :: a } deriving (Show)
 
 data ConfigException = ConfigNotFound | ConfigParseException Text deriving (Show, Typeable)
-instance Exception ConfigException
+instance Exception ConfigException where
+  toException = weatherExceptionToException
+  fromException = weatherExceptionFromException
 
 configFilePath :: FilePath
 configFilePath = "/Users/Sam/.weather"

@@ -1,11 +1,15 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, GeneralizedNewtypeDeriving, ExistentialQuantification #-}
 
 module App (
   WeatherAppIO (..),
-  runWithConfig
+  runWithConfig,
+  SomeWeatherException (..),
+  weatherExceptionToException,
+  weatherExceptionFromException
 ) where
 
 import Data.Text
+import Data.Typeable
 import Control.Monad.Reader
 import Control.Monad.Writer
 import Control.Monad.Identity
@@ -19,3 +23,19 @@ runWithConfig :: WeatherAppIO c a -> c -> IO a
 runWithConfig weather config = do
   (out, _) <- runWriterT (runReaderT (runWeatherIO weather) config)
   return out
+
+
+data SomeWeatherException = forall e . Exception e => SomeWeatherException e deriving (Typeable)
+
+instance Show SomeWeatherException where
+  show (SomeWeatherException e) = show e
+
+instance Exception SomeWeatherException
+
+weatherExceptionToException :: Exception e => e -> SomeException
+weatherExceptionToException = toException . SomeWeatherException
+
+weatherExceptionFromException :: Exception e => SomeException -> Maybe e
+weatherExceptionFromException x = do
+  SomeWeatherException a <- fromException x
+  cast a
