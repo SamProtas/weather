@@ -8,6 +8,7 @@ import Configuration
 import Weather
 import Weather.WeatherUnderground
 
+import System.Exit
 import Control.Exception.Safe
 import Control.Monad.Reader
 import Control.Monad.Writer
@@ -17,16 +18,12 @@ import qualified Data.Text as T
 
 
 main :: IO ()
-main = do
-  config <- getConfig `withException` (\e -> putStrLn $ "Exited with: " ++ show (e :: SomeWeatherException))
-  runWithConfig weather config `catch` reportExceptions
-  return ()
+main = handle
+  (\e -> die $ "Exited with: " ++ show (e :: SomeWeatherException))
+  (do
+    config <- getConfig
+    runWithConfig getWeather config
+    return ())
 
-weather :: WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
-weather = getLocation >>= getConditions >>= displayWeather
-
-
--- TODO - Generalize to other exception types or fix exception hierarchy
-reportExceptions :: ConfigException -> IO ()
-reportExceptions ConfigNotFound = print "Could not find configuation"
-reportExceptions (ConfigParseException raw) = print "Could not parse configuration" >> print "" >> print raw
+getWeather :: WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
+getWeather = getLocation >>= getConditions >>= displayWeather
