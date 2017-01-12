@@ -30,4 +30,5 @@ executable weather
                      , http-conduit
                      , http-client-tls
                      , exceptions
+                     , safe-exceptions
                      , mtl

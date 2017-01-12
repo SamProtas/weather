@@ -19,8 +19,8 @@ import qualified Data.ByteString.Lazy.Char8 as C
 import Network.HTTP.Client (newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Network.HTTP.Simple
+import Control.Exception.Safe
 import Control.Monad
-import Control.Monad.Catch
 import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Aeson

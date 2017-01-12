@@ -14,8 +14,7 @@ import App
 
 import System.IO
 
--- import Control.Exception
-import Control.Monad.Catch
+import Control.Exception.Safe
 import Data.Typeable
 import Data.Text
 import Data.String (IsString)

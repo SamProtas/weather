@@ -7,7 +7,7 @@ import Location
 import Configuration
 import Weather.WeatherUnderground
 
-import Control.Monad.Catch
+import Control.Exception.Safe
 import Control.Monad.Reader
 import Control.Monad.Writer
 import Control.Monad.Identity

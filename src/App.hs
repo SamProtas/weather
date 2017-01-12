@@ -9,8 +9,7 @@ import Data.Text
 import Control.Monad.Reader
 import Control.Monad.Writer
 import Control.Monad.Identity
-import Control.Monad.Catch
-
+import Control.Exception.Safe
 
 newtype WeatherAppIO c a = WeatherAppIO {
   runWeatherIO :: ReaderT c (WriterT [Text] IO) a
