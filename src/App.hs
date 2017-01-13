@@ -19,11 +19,9 @@ newtype WeatherAppIO c a = WeatherAppIO {
   runWeatherIO :: ReaderT c (WriterT [Text] IO) a
   } deriving (Monad, Applicative, Functor, MonadReader c, MonadWriter [Text], MonadIO, MonadThrow)
 
-runWithConfig :: WeatherAppIO c a -> c -> IO a
-runWithConfig weather config = do
-  (out, _) <- runWriterT (runReaderT (runWeatherIO weather) config)
-  return out
-
+runWithConfig :: WeatherAppIO c a -> c -> IO (a, [Text])
+runWithConfig weather config =
+  runWriterT (runReaderT (runWeatherIO weather) config)
 
 data SomeWeatherException = forall e . Exception e => SomeWeatherException e deriving (Typeable)
 

@@ -1,13 +1,15 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, GeneralizedNewtypeDeriving, DuplicateRecordFields #-}
 
 module Main where
 
 import App
+import CommandLine
 import Location
 import Configuration
 import Weather
 import Weather.WeatherUnderground
 
+import Data.Char
 import System.Console.ArgParser
 import System.Exit
 import Control.Exception.Safe
@@ -24,23 +26,26 @@ main = do
   runApp interface run
 
 run :: ParsedArgs ->  IO ()
-run args = handle
-            (\e -> die $ "Exited with: " ++ show (e :: SomeWeatherException))
-            (do
-              config <- getConfig
-              runWithConfig getWeather config
-              return ())
+run args@ParsedArgs { reportType = reportType,  debug = debug} = handle
+  (\e -> die $ "Exited with: " ++ show (e :: SomeWeatherException))
+  (do
+    config <- getConfig
+    (_, log) <- runWithConfig (dispatchArgs args) config
+    when debug $ sequence_ $ print <$> log -- TODO: Catch log rethrow on error. MonadCatch?
+    return ())
 
 
-getWeather :: WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
-getWeather = getLocation >>= getConditions >>= displayWeather
+dispatchArgs :: ParsedArgs -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
+dispatchArgs ParsedArgs { configure = True } = liftIO $ putStrLn "Configureing..." -- TODO: implement
+dispatchArgs args = dispatchWeather args
 
-type ReportType = String
-data ParsedArgs = ParsedArgs ReportType
+dispatchWeather :: ParsedArgs -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
+dispatchWeather args@ParsedArgs { city = "", state = ""} = getLocation >>= dispatchWeatherForLocation args
+dispatchWeather ParsedArgs { city = city, state = state } = undefined -- TODO build location object here, parseLocation function?
 
-myWeatherParser :: ParserSpec ParsedArgs
-myWeatherParser = ParsedArgs
-  `parsedBy` optPos "current" "reportType" `Descr` "what specifically about the weather do you want to know?"
-
-getCmdLnInterface :: IO (CmdLnInterface ParsedArgs)
-getCmdLnInterface = pure $ mkDefaultApp myWeatherParser "weather"
+dispatchWeatherForLocation :: ParsedArgs -> Location -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
+dispatchWeatherForLocation ParsedArgs { reportType = reportType } location = getReport location >>= displayWeather
+  where getReport = case fmap toLower reportType of "current" -> getConditions
+                                                    "hourly" -> undefined -- TODO: implement
+                                                    "daily" -> undefined -- TODO: implement
+                                                    _ -> undefined -- Throw invalid option error here

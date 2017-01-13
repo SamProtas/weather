@@ -19,6 +19,7 @@ executable weather
   other-modules:       Configuration
                      , Location
                      , App
+                     , CommandLine
                      , Weather
                      , Weather.WeatherUnderground
   default-language:    Haskell2010
