@@ -16,10 +16,10 @@ import Control.Monad.Identity
 import Control.Exception.Safe
 
 newtype WeatherAppIO c a = WeatherAppIO {
-  runWeatherIO :: ReaderT c (WriterT [Text] IO) a
-  } deriving (Monad, Applicative, Functor, MonadReader c, MonadWriter [Text], MonadIO, MonadThrow)
+  runWeatherIO :: ReaderT c (WriterT [String] IO) a
+  } deriving (Monad, Applicative, Functor, MonadReader c, MonadWriter [String], MonadIO, MonadThrow)
 
-runWithConfig :: WeatherAppIO c a -> c -> IO (a, [Text])
+runWithConfig :: WeatherAppIO c a -> c -> IO (a, [String])
 runWithConfig weather config =
   runWriterT (runReaderT (runWeatherIO weather) config)
 

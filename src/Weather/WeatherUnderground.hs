@@ -88,7 +88,7 @@ instance DisplayAbleWeather CurrentObservationResponse where
     time weatherDesc temp_f feelslike_f relative_humidity wind_string
     CurrentObservationLocation { full = locationString }
     )) = do
-      tell [T.append "Current observation raw: " (T.pack $ show obs)]
+      tell [show obs]
       putM $ "Current Weather Report for: " ++ locationString
       putM weatherDesc
       putM $ "Temperature: " ++ show temp_f ++ degreesF
