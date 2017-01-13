@@ -31,7 +31,7 @@ run args@ParsedArgs { reportType = reportType,  debug = debug} = handle
   (do
     config <- getConfig
     (_, log) <- runWithConfig (dispatchArgs args) config
-    when debug $ sequence_ $ print <$> log -- TODO: Catch log rethrow on error. MonadCatch?
+    when debug $ sequence_ $ putStrLn <$> log -- TODO: Catch log rethrow on error. MonadCatch?
     return ())
 
 
