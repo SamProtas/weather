@@ -52,7 +52,6 @@ getLocation = do
    manager <- liftIO $ newManager tlsManagerSettings
    let request = setRequestManager manager locationUrl
    response <- httpJSON request
-   tell ["Requested location"]
+   tell [show response]
    let body = getResponseBody response
-   tell ["Parsed location"]
    return body
