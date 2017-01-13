@@ -61,14 +61,17 @@ lower feature = T.pack $ fmap toLower (show feature)
 
 base = "http://api.wunderground.com/api/"
 
-getUrl :: FromJSON a => Feature -> Location -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) a
+getUrl :: (FromJSON a, Show a) => Feature -> Location -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) a
 getUrl feature location = do
     config <- ask
     manager <- liftIO $ newManager tlsManagerSettings
     let url = buildUrl config feature location
+    tell [show url]
     preRequest <- toRequest url
     let request = setRequestManager manager preRequest
+    tell [show request]
     response <- httpJSON request
+    tell [show response]
     let body = getResponseBody response
     return body
 
