@@ -2,7 +2,8 @@
 
 module Weather.WeatherUnderground (
   getConditions,
-  getHourly
+  getHourly,
+  getDaily
 ) where
 
 import App
@@ -32,7 +33,7 @@ import Data.Either
 import qualified Data.HashMap.Lazy as Map
 
 
-data Feature = Conditions | Hourly deriving (Show) -- Additional features added here
+data Feature = Conditions | Hourly | Forecast10Day deriving (Show)
 newtype WeatherUrl = WeatherUrl Text deriving (Show, Generic, IsString)
 
 data CurrentObservationResponse = CurrentObservationResponse { current_observation :: CurrentObservation }
@@ -80,6 +81,24 @@ data HourlyForcastResponse = HourlyForcastResponse { hourly_forecast :: [HourFor
 instance ToJSON HourlyForcastResponse
 instance FromJSON HourlyForcastResponse
 
+data DayForcast = DayForcast { title :: String
+                             , fcttext :: String }
+                             deriving (Show, Generic)
+instance ToJSON DayForcast
+instance FromJSON DayForcast
+
+data DailyForcastWrapper = DailyForcastWrapper { forecastday :: [DayForcast] } deriving (Show, Generic)
+instance ToJSON DailyForcastWrapper
+instance FromJSON DailyForcastWrapper
+
+data DailyTextForcastWrapper = DailyTextForcastWrapper { txt_forecast :: DailyForcastWrapper} deriving (Show, Generic)
+instance ToJSON DailyTextForcastWrapper
+instance FromJSON DailyTextForcastWrapper
+
+data DailyForcastResponse = DailyForcastResponse { forecast :: DailyTextForcastWrapper } deriving (Show, Generic)
+instance ToJSON DailyForcastResponse
+instance FromJSON DailyForcastResponse
+
 lower :: Feature -> Text
 lower feature = T.pack $ fmap toLower (show feature)
 
@@ -105,6 +124,9 @@ getConditions = getUrl Conditions
 getHourly :: Location -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) HourlyForcastResponse
 getHourly = getUrl Hourly
 
+getDaily :: Location -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) DailyForcastResponse
+getDaily = getUrl Forecast10Day
+
 buildUrl :: SpecificConfig WeatherUndergroundApiKey -> Feature -> Location -> WeatherUrl
 buildUrl (SpecificConfig (WeatherUndergroundApiKey apiKey)) feature (Location _ _ _ lat lon) =
   WeatherUrl $ T.concat [base, apiKey, "/", lower feature, "/q/", T.pack $ show lat, ",", T.pack $ show lon, ".json"]
@@ -119,17 +141,21 @@ instance DisplayAbleWeather CurrentObservationResponse where
     time weatherDesc temp_f feelslike_f relative_humidity wind_string
     CurrentObservationLocation { full = locationString }
     )) = do
-      tell [show obs]
+      putM ""
       putM $ "Current Weather Report for: " ++ locationString
       putM weatherDesc
       putM $ "Temperature: " ++ show temp_f ++ degreesF
       putM $ "Feels like " ++ feelslike_f ++ degreesF
       putM $ "Wind: " ++ wind_string
       putM time
+      putM ""
 
 
 instance DisplayAbleWeather HourlyForcastResponse where
-  displayWeather (HourlyForcastResponse hours) = sequence_ $ putM <$> formatHours hours
+  displayWeather (HourlyForcastResponse hours) = do
+    putM ""
+    sequence_ $ putM <$> formatHours hours
+    putM ""
 
 formatHours :: [HourForcast] -> [String]
 formatHours = intercalate ["-------"] . fmap formatHourForcast
@@ -140,3 +166,16 @@ formatHourForcast (HourForcast time temp feels condition) =
   , "Condtions: " ++ condition
   , "Temperature: " ++ temp ++ degreesF
   , "Feels Like: " ++ feels ++ degreesF ]
+
+instance DisplayAbleWeather DailyForcastResponse where
+  displayWeather (DailyForcastResponse (DailyTextForcastWrapper (DailyForcastWrapper days))) = do
+    putM ""
+    sequence_ $ putM <$> formatDays days
+    putM ""
+
+formatDayForcast :: DayForcast -> [String]
+formatDayForcast (DayForcast title report) =
+  [ title, report]
+
+formatDays :: [DayForcast] -> [String]
+formatDays =  intercalate ["------"] . fmap formatDayForcast

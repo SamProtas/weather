@@ -37,7 +37,7 @@ run args@ParsedArgs { reportType = reportType,  debug = debug} = handle
 
 dispatchArgs :: ParsedArgs -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
 -- dispatchArgs ParsedArgs { configure = True } = liftIO $ putStrLn "Can't do this yet..." -- TODO: implement
-dispatchArgs args = dispatchWeather args
+dispatchArgs = dispatchWeather
 
 dispatchWeather :: ParsedArgs -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
 dispatchWeather args = getLocation >>= dispatchWeatherForLocation args
@@ -49,4 +49,4 @@ dispatchWeatherForLocation :: ParsedArgs -> Location -> WeatherAppIO (SpecificCo
 dispatchWeatherForLocation ParsedArgs { reportType = reportType } location = getReport
   where getReport = case reportType of Current -> getConditions location >>= displayWeather
                                        Hourly -> getHourly location >>= displayWeather
---                                        Daily -> undefined -- TODO: implement
+                                       Daily -> getDaily location >>= displayWeather
