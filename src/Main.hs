@@ -45,7 +45,6 @@ dispatchWeather ParsedArgs { city = city, state = state } = undefined -- TODO bu
 
 dispatchWeatherForLocation :: ParsedArgs -> Location -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
 dispatchWeatherForLocation ParsedArgs { reportType = reportType } location = getReport location >>= displayWeather
-  where getReport = case fmap toLower reportType of "current" -> getConditions
-                                                    "hourly" -> undefined -- TODO: implement
-                                                    "daily" -> undefined -- TODO: implement
-                                                    _ -> undefined -- Throw invalid option error here
+  where getReport = case reportType of Current -> getConditions
+                                       Hourly -> undefined -- TODO: implement
+                                       Daily -> undefined -- TODO: implement
