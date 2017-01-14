@@ -2,8 +2,7 @@
 
 module Weather.WeatherUnderground (
   getConditions,
-  Feature (..),
---   DisplayAbleWeather (CurrentObservationResponse)
+  getHourly
 ) where
 
 import App
@@ -16,6 +15,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.String (IsString)
 import Data.Char
+import Data.List
 import qualified Data.ByteString.Lazy.Char8 as C
 import Network.HTTP.Client (newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
@@ -26,11 +26,13 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.Writer
 import Data.Aeson
+import Data.Aeson.Types
 import Data.Bifunctor
 import Data.Either
+import qualified Data.HashMap.Lazy as Map
 
 
-data Feature = Conditions deriving (Show) -- Additional features added here
+data Feature = Conditions | Hourly deriving (Show) -- Additional features added here
 newtype WeatherUrl = WeatherUrl Text deriving (Show, Generic, IsString)
 
 data CurrentObservationResponse = CurrentObservationResponse { current_observation :: CurrentObservation }
@@ -56,6 +58,28 @@ data CurrentObservationLocation = CurrentObservationLocation { full :: String
 instance FromJSON CurrentObservationLocation
 instance ToJSON CurrentObservationLocation
 
+
+data HourForcast = HourForcast { prettyTime :: String
+                               , tempFString :: String
+                               , feelsLikeFString :: String
+                               , condition :: String }
+                               deriving (Show, Generic)
+instance ToJSON HourForcast
+instance FromJSON HourForcast where
+  parseJSON (Object o) = do
+    prettyTime <- o .: "FCTTIME" >>= parseObj "pretty"
+    tempFString <- o .: "temp" >>= parseObj "english"
+    feelslikeFString <- o .: "feelslike" >>= parseObj "english"
+    condition <- o .: "condition"
+    return $ HourForcast prettyTime tempFString feelslikeFString condition
+      where parseObj :: Text -> Value -> Parser String
+            parseObj key (Object o) = o .: key
+            parseObj _ obj = typeMismatch "HourForcast" obj
+
+data HourlyForcastResponse = HourlyForcastResponse { hourly_forecast :: [HourForcast] } deriving (Show, Generic)
+instance ToJSON HourlyForcastResponse
+instance FromJSON HourlyForcastResponse
+
 lower :: Feature -> Text
 lower feature = T.pack $ fmap toLower (show feature)
 
@@ -78,6 +102,9 @@ getUrl feature location = do
 getConditions :: Location -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) CurrentObservationResponse
 getConditions = getUrl Conditions
 
+getHourly :: Location -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) HourlyForcastResponse
+getHourly = getUrl Hourly
+
 buildUrl :: SpecificConfig WeatherUndergroundApiKey -> Feature -> Location -> WeatherUrl
 buildUrl (SpecificConfig (WeatherUndergroundApiKey apiKey)) feature (Location _ _ _ lat lon) =
   WeatherUrl $ T.concat [base, apiKey, "/", lower feature, "/q/", T.pack $ show lat, ",", T.pack $ show lon, ".json"]
@@ -85,6 +112,7 @@ buildUrl (SpecificConfig (WeatherUndergroundApiKey apiKey)) feature (Location _ 
 toRequest :: MonadThrow m => WeatherUrl -> m Request
 toRequest (WeatherUrl url) = parseRequest $ T.unpack url
 
+degreesF = " °F"
 
 instance DisplayAbleWeather CurrentObservationResponse where
   displayWeather obs@(CurrentObservationResponse (CurrentObservation
@@ -98,7 +126,17 @@ instance DisplayAbleWeather CurrentObservationResponse where
       putM $ "Feels like " ++ feelslike_f ++ degreesF
       putM $ "Wind: " ++ wind_string
       putM time
-        where degreesF = " °F"
 
 
+instance DisplayAbleWeather HourlyForcastResponse where
+  displayWeather (HourlyForcastResponse hours) = sequence_ $ putM <$> formatHours hours
 
+formatHours :: [HourForcast] -> [String]
+formatHours = intercalate ["-------"] . fmap formatHourForcast
+
+formatHourForcast :: HourForcast -> [String]
+formatHourForcast (HourForcast time temp feels condition) =
+  [ time
+  , "Condtions: " ++ condition
+  , "Temperature: " ++ temp ++ degreesF
+  , "Feels Like: " ++ feels ++ degreesF ]

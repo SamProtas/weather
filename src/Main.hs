@@ -43,8 +43,9 @@ dispatchWeather :: ParsedArgs -> WeatherAppIO (SpecificConfig WeatherUnderground
 dispatchWeather args@ParsedArgs { city = "", state = ""} = getLocation >>= dispatchWeatherForLocation args
 dispatchWeather ParsedArgs { city = city, state = state } = undefined -- TODO build location object here, parseLocation function?
 
+-- TODO - use typeclass definitions for different backend support
 dispatchWeatherForLocation :: ParsedArgs -> Location -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
-dispatchWeatherForLocation ParsedArgs { reportType = reportType } location = getReport location >>= displayWeather
-  where getReport = case reportType of Current -> getConditions
-                                       Hourly -> undefined -- TODO: implement
+dispatchWeatherForLocation ParsedArgs { reportType = reportType } location = getReport
+  where getReport = case reportType of Current -> getConditions location >>= displayWeather
+                                       Hourly -> getHourly location >>= displayWeather
                                        Daily -> undefined -- TODO: implement

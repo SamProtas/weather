@@ -34,3 +34,4 @@ executable weather
                      , safe-exceptions
                      , mtl
                      , argparser == 0.3.4
+                     , unordered-containers
