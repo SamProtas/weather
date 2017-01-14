@@ -26,7 +26,7 @@ reportTypeParser s
   | lowerReportType == "current" = Right Current
   | lowerReportType == "daily" = Right Daily
   | lowerReportType == "hourly" = Right Hourly
-  | otherwise = Left $ s ++ " is not a valid weather report type"
+  | otherwise = Left $ s ++ " is not a valid weather report type. Use '-h' to see your options."
     where lowerReportType = fmap toLower s
 
 myWeatherParser :: ParserSpec ParsedArgs
