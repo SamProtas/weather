@@ -36,16 +36,17 @@ run args@ParsedArgs { reportType = reportType,  debug = debug} = handle
 
 
 dispatchArgs :: ParsedArgs -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
-dispatchArgs ParsedArgs { configure = True } = liftIO $ putStrLn "Configureing..." -- TODO: implement
+-- dispatchArgs ParsedArgs { configure = True } = liftIO $ putStrLn "Can't do this yet..." -- TODO: implement
 dispatchArgs args = dispatchWeather args
 
 dispatchWeather :: ParsedArgs -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
-dispatchWeather args@ParsedArgs { city = "", state = ""} = getLocation >>= dispatchWeatherForLocation args
-dispatchWeather ParsedArgs { city = city, state = state } = undefined -- TODO build location object here, parseLocation function?
+dispatchWeather args = getLocation >>= dispatchWeatherForLocation args
+-- dispatchWeather args@ParsedArgs { city = "", state = ""} = getLocation >>= dispatchWeatherForLocation args
+-- dispatchWeather ParsedArgs { city = city, state = state } = undefined -- TODO build location object here, parseLocation function?
 
 -- TODO - use typeclass definitions for different backend support
 dispatchWeatherForLocation :: ParsedArgs -> Location -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
 dispatchWeatherForLocation ParsedArgs { reportType = reportType } location = getReport
   where getReport = case reportType of Current -> getConditions location >>= displayWeather
                                        Hourly -> getHourly location >>= displayWeather
-                                       Daily -> undefined -- TODO: implement
+--                                        Daily -> undefined -- TODO: implement
