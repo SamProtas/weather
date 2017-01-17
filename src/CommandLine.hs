@@ -12,7 +12,7 @@ import System.Console.ArgParser.Params
 data ParsedArgs = ParsedArgs { reportType :: ReportType
 --                              , city :: String
 --                              , state :: String
---                              , configure :: Bool
+                             , configure :: Bool
                              , debug :: Bool
                              } deriving (Show)
 
@@ -37,7 +37,7 @@ myWeatherParser = ParsedArgs
   `parsedBy` reportTypeParam `Descr` "[" ++ reportTypesPretty ++ "] Defaults to 'current'"
 --   `andBy` optFlag "" "city" `Descr` "optionally specify a location (must be used with '--state')"
 --   `andBy` optFlag "" "state" `Descr` "optionally specify a location (must be used with '--city')"
---   `andBy` FlagParam Long "configure" id `Descr` "add/modify an api key"
+  `andBy` FlagParam Long "configure" id `Descr` "add/modify an api key"
   `andBy` boolFlag "debug" `Descr` "print debugging information (for developers only)"
 
 getCmdLnInterface :: IO (CmdLnInterface ParsedArgs)

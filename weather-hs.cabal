@@ -27,6 +27,7 @@ executable weather
                      , text
                      , bytestring
                      , aeson
+                     , aeson-pretty
                      , http-client
                      , http-conduit
                      , http-client-tls

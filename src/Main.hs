@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric, GeneralizedNewtypeDeriving, DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric, GeneralizedNewtypeDeriving, DuplicateRecordFields, ScopedTypeVariables #-}
 
 module Main where
 
@@ -26,18 +26,16 @@ main = do
   runApp interface run
 
 run :: ParsedArgs ->  IO ()
-run args@ParsedArgs { reportType = reportType,  debug = debug} = handle
-  (\e -> die $ "Exited with: " ++ show (e :: SomeWeatherException))
-  (do
+run ParsedArgs { configure = True } = liftIO setWeatherUndergroundConfig
+run args@ParsedArgs { debug = debug} = do
     config <- getConfig
-    (_, log) <- runWithConfig (dispatchArgs args) config
+    (_, log) <- runWithConfig (dispatchWeather args) config
     when debug $ sequence_ $ putStrLn <$> log -- TODO: Catch log rethrow on error. MonadCatch?
-    return ())
+    return ()
+    `catches`
+    [ Handler (\(e :: ConfigException) -> putStrLn (toMessage e))
+    , Handler (\(e :: SomeWeatherException) -> die $ "Exited with: " ++ show e) ]
 
-
-dispatchArgs :: ParsedArgs -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
--- dispatchArgs ParsedArgs { configure = True } = liftIO $ putStrLn "Can't do this yet..." -- TODO: implement
-dispatchArgs = dispatchWeather
 
 dispatchWeather :: ParsedArgs -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
 dispatchWeather args = getLocation >>= dispatchWeatherForLocation args
