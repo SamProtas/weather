@@ -35,8 +35,3 @@ optional arguments:
 1. Install stack (https://docs.haskellstack.org/en/stable/install_and_upgrade/)
 2. Download Source (`git clone https://github.com/SamProtas/weather`)
 3. Build and install from source directory (`stack install`)
-
-```bash
-git clone https://github.com/SamProtas/weather
-cd weather
-```
