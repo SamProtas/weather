@@ -2,7 +2,8 @@
 
 module Location (
   getLocation,
-  Location (..)
+  Location (..),
+  State (..)
 ) where
 
 import App
@@ -18,22 +19,22 @@ import Network.HTTP.Client (newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Network.HTTP.Simple
 
-data Location = Location { city :: Text
-                         , region :: Text
-                         , country :: Text
-                         , latitude :: Float
-                         , longitude :: Float }
+data Location = Location { city :: Maybe String
+                         , region :: Maybe String
+                         , country :: Maybe String
+                         , latitude :: Maybe Float
+                         , longitude :: Maybe Float }
                          deriving (Show, Generic)
 
 instance ToJSON Location
 instance FromJSON Location where
   parseJSON (Object o) = do
-    parsedCity <- o .: "city"
-    parsedRegion <- o .: "region"
-    parsedCountry <- o .: "country"
+    parsedCity <- o .:? "city"
+    parsedRegion <- o .:? "region"
+    parsedCountry <- o .:? "country"
     location <- o .: "loc"
     (parsedLat, parsedLong) <- locToLatLong location
-    return $ Location parsedCity parsedRegion parsedCountry parsedLat parsedLong
+    return $ Location parsedCity parsedRegion parsedCountry (Just parsedLat) (Just parsedLong)
     where
       locToLatLong :: Text -> Parser (Float, Float)
       locToLatLong loc = parseLatLong $ split (==',') loc
@@ -55,3 +56,8 @@ getLocation = do
    tell [show response]
    let body = getResponseBody response
    return body
+
+data State =
+  AL | AK | AZ | AR | CA | CO | CT | DE | FL | GA | HI | ID | IL | IN | IA | KS | KY | LA | ME | MD | MA | MI | MN |
+  MS | MO | MT | NE | NV | NH | NJ | NM | NY | NC | ND | OH | OK | OR | PA | RI | SC | SD | TN | TX | UT | VT | VA |
+  WA | WV | WI | WY deriving (Show, Enum, Read)

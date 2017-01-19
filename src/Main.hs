@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric, GeneralizedNewtypeDeriving, DuplicateRecordFields, ScopedTypeVariables #-}
+{-# LANGUAGE DuplicateRecordFields, ScopedTypeVariables #-}
 
 module Main where
 
@@ -37,10 +37,14 @@ run args@ParsedArgs { debug = debug} = do
     , Handler (\(e :: SomeWeatherException) -> die $ "Exited with: " ++ show e) ]
 
 
+
+-- TODO - move more parsing to custom command line parser to simplify this logic
 dispatchWeather :: ParsedArgs -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()
-dispatchWeather args = getLocation >>= dispatchWeatherForLocation args
--- dispatchWeather args@ParsedArgs { city = "", state = ""} = getLocation >>= dispatchWeatherForLocation args
--- dispatchWeather ParsedArgs { city = city, state = state } = undefined -- TODO build location object here, parseLocation function?
+dispatchWeather args@ParsedArgs { city = "", state = Nothing, country = "us" } = getLocation >>= dispatchWeatherForLocation args
+dispatchWeather args@ParsedArgs { city = city, state = Nothing, country = country } =
+  dispatchWeatherForLocation args $ Location (Just city) Nothing (Just country) Nothing Nothing
+dispatchWeather args@ParsedArgs { city = city, state = state } =
+  dispatchWeatherForLocation args $ Location (Just city) (fmap show state) Nothing Nothing Nothing
 
 -- TODO - use typeclass definitions for different backend support
 dispatchWeatherForLocation :: ParsedArgs -> Location -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) ()

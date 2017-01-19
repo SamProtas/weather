@@ -99,6 +99,11 @@ data DailyForcastResponse = DailyForcastResponse { forecast :: DailyTextForcastW
 instance ToJSON DailyForcastResponse
 instance FromJSON DailyForcastResponse
 
+data WeatherUndergroundException = BuildUrlException Feature Location deriving (Show, Typeable)
+instance Exception WeatherUndergroundException where
+  toException = weatherExceptionToException
+  fromException = weatherExceptionFromException
+
 lower :: Feature -> Text
 lower feature = T.pack $ fmap toLower (show feature)
 
@@ -108,7 +113,7 @@ getUrl :: (FromJSON a, Show a) => Feature -> Location -> WeatherAppIO (SpecificC
 getUrl feature location = do
     config <- ask
     manager <- liftIO $ newManager tlsManagerSettings
-    let url = buildUrl config feature location
+    url <- buildUrl config feature location
     tell [show url]
     preRequest <- toRequest url
     let request = setRequestManager manager preRequest
@@ -127,9 +132,23 @@ getHourly = getUrl Hourly
 getDaily :: Location -> WeatherAppIO (SpecificConfig WeatherUndergroundApiKey) DailyForcastResponse
 getDaily = getUrl Forecast10Day
 
-buildUrl :: SpecificConfig WeatherUndergroundApiKey -> Feature -> Location -> WeatherUrl
-buildUrl (SpecificConfig (WeatherUndergroundApiKey apiKey)) feature (Location _ _ _ lat lon) =
-  WeatherUrl $ T.concat [base, apiKey, "/", lower feature, "/q/", T.pack $ show lat, ",", T.pack $ show lon, ".json"]
+buildUrl :: MonadThrow m => SpecificConfig WeatherUndergroundApiKey -> Feature -> Location -> m WeatherUrl
+buildUrl (SpecificConfig (WeatherUndergroundApiKey apiKey)) feature (Location _ _ _ (Just lat) (Just lon)) =
+  return $ WeatherUrl $ T.concat [base, apiKey, "/", lower feature, "/q/", T.pack $ show lat, ",", T.pack $ show lon, ".json"]
+buildUrl (SpecificConfig (WeatherUndergroundApiKey apiKey)) feature (Location (Just city) Nothing (Just country) _ _) =
+  return $ WeatherUrl $ T.concat [base, apiKey, "/", lower feature, "/q/", urlify country, "/", urlify city, ".json"]
+buildUrl (SpecificConfig (WeatherUndergroundApiKey apiKey)) feature (Location (Just city) (Just state) Nothing _ _) =
+  return $ WeatherUrl $ T.concat [base, apiKey, "/", lower feature, "/q/", urlify state, "/", urlify city, ".json"]
+buildUrl _ feature location = throw $ BuildUrlException feature location
+
+urlify :: String -> Text
+urlify s = T.pack $ replace s
+  where replace :: String -> String
+        replace = foldl' replaceC ""
+        replaceC :: String -> Char-> String
+        replaceC acc ' ' = acc ++ ['_']
+        replaceC acc c = acc ++ [c]
+
 
 toRequest :: MonadThrow m => WeatherUrl -> m Request
 toRequest (WeatherUrl url) = parseRequest $ T.unpack url
